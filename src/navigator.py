@@ -21,52 +21,66 @@ class Node:
 def heuristic(node, goal):
     h = abs(node.position[0] - goal.position[0]) + abs(node.position[1] - goal.position[1])
     return h
+# 시작 : map과 시작, 종료지점의 좌표값을 받음
 def astar(map, start, end):
     startNode = Node(None, start)
     endNode = Node(None, end)
-
+	#1. openList에 startNode를 만들어서 사용
     openList = [startNode]
+	#endList는 map과 동일하게 width*height크기로 배열 생성(True일경우 해당 노드는 close)
     closeList = [[False for i in range(len(map[0]))]for j in range(len(map))]
-
+	#openList가 모두 빌때까지 반복
     while openList:
+		#2. openList내의 노드들 중 f값이 최소인 노드 탐색 후 선택후 openList에서 삭제
         currentNode = openList[0]
         currentIndex = 0
         for index, item in enumerate(openList):
             if item.f < currentNode.f:
                 currentIndex = index
                 currentNode = item
-        
         openList.pop(currentIndex)
+		#3. closeList에 넣음
         closeList[currentNode.position[0]][currentNode.position[1]] = True
+		#7. 현재 선택한 노드가 목표노드일 경우 종료
         if currentNode.position == endNode.position:
             print("Find")
             path= [currentNode.position]
+			# 부모노드로 거슬러 올라가면서 path저장
             while currentNode.parent:
                 currentNode = currentNode.parent
                 path.append(currentNode.position)
             return path
             break
+		
+		#4. 현재 노드를 기준으로 8방위중 이동 가능한 위치에 대한 F, G, H값 계산
         for newPostion in [(0,-1), (0,1), (-1,0), (1,0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
             nodePostion = (currentNode.position[0] - newPostion[0], currentNode.position[1] - newPostion[1])
-            if nodePostion[0] < 0 or nodePostion[1] < 0:
+            # 좌표가 맵의 영역을 벗어나는것 방지
+			if nodePostion[0] < 0 or nodePostion[1] < 0:
                 continue
             if nodePostion[0] > len(map) -1 or nodePostion[1] > len(map[0]) -1:
                 continue
+			# 해당 좌표가 장애물이 있는 노드인지 검사
             if map[nodePostion[0]][nodePostion[1]] != 255:
                 continue
+			# 해당 좌표가 closeList에 포함되어있는지 검사
             if closeList[nodePostion[0]][nodePostion[1]]:
                 continue
             newNode = Node(currentNode, (nodePostion[0],nodePostion[1]))
-            newNode.g = currentNode.g + 10
+            # 새로운 노드의 g값 계산(부모노드의 g값 + 10, 대각선일 경우 +14)
+			newNode.g = currentNode.g + 10
             if newPostion[0] != 0 and newPostion[1] != 0:
                 newNode.g += 4
-            
+            # 새로운 노드의 h값 계산(맨하탄 거리)
             newNode.h = heuristic(newNode, endNode)
+			# 새로운 노드의 f값 계산(g + h)
             newNode.f = newNode.g + newNode.h
+			# 새로운 노드가 이미 openList에 포함되어있는지 검사
             check = False
             nodeIndex = -1
             for index, openNode in enumerate(openList):
                 if openNode.position == newNode.position:
+					# 새로운 노드의 g값이 이미 있던 노드의 g값보다 큰경우 중지
                     if openNode.g < newNode.g:
                         check = True
                         break
@@ -74,9 +88,12 @@ def astar(map, start, end):
                         nodeIndex = index
             if check:
                 continue
+			# 새로운 노드의 g값이 이미 있던 노드의 g값 보다 작은경우 이미 존재하던 노드 삭제
             if nodeIndex != -1:
                 openList.pop(nodeIndex)
+			# 새로운 노드를 openList에 넣음
             openList.append(newNode)
+	#목표지점까지 path를 찾지 못한경우 None값 반환
     return None
 def odom_cb(msg):
     current_pose = msg
